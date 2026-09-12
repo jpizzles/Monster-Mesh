@@ -2,6 +2,23 @@
 
 All notable Monster Mesh changes are tracked here.
 
+## 0.2.0 - 2026-09-12
+
+Base: same pinned DigitainoMeshCore commit as 0.1.0.
+
+Added:
+
+- Settings `Version >` screen (Monster Mesh / v0.2.0 / release date / "A jPizZleS Meshterpiece! It's ALLLiVE!!")
+- animated boot splash: split-flap flip-in of "Monster Mesh" + the device/node name
+
+Fixed / hardened:
+
+- the read-only predicate that makes FREQ/SF/BW/CR editable on-device is now
+  guarded in the patch and verified in CI, so it can never silently no-op and
+  leave Radio navigation "stuck at TX" again. (If your device can't move past
+  TX power on the Radio page, you are running a build from before this fix —
+  the `Version >` screen will confirm which build is flashed.)
+
 ## 0.1.0 - Initial Monster Mesh build
 
 Base:

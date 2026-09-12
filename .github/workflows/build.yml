@@ -43,6 +43,10 @@ jobs:
           grep -q '_freq_edit_mode' examples/companion_radio/ui-new/UITask.cpp
           grep -q 'L/R digit  U/D value' examples/companion_radio/ui-new/UITask.cpp
           grep -q 'Navigation' examples/companion_radio/ui-new/UITask.cpp
+          grep -q 'return id == SG_NAME;' examples/companion_radio/ui-new/UITask.cpp
+          grep -q '_ver_info_active' examples/companion_radio/ui-new/UITask.cpp
+          grep -q 'A jPizZleS' examples/companion_radio/ui-new/UITask.cpp
+          grep -q 'flipReveal' examples/companion_radio/ui-new/UITask.cpp
 
       - name: Build Wio Tracker L1 Pro UF2
         working-directory: firmware

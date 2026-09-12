@@ -77,7 +77,25 @@ Example:
 915.00[0]
 ```
 
-## 6. Navigation retained
+## 6. Version info screen
+
+Settings now has a clickable `Version >` row. Opening it shows:
+
+```text
+Monster Mesh
+v0.2.0  -  2026-09-12
+A jPizZleS
+Meshterpiece!
+It's ALLLiVE!!
+```
+
+Any key returns to the settings list. (Only the Name row stays read-only now; FREQ/SF/BW/CR are directly editable on-device — see #4/#5.)
+
+## 7. Boot splash flip-in animation
+
+The startup splash is now an animated split-flap "flip-in": line 1 reveals `Monster Mesh`, line 2 reveals the device/node name (each character cycles through glyphs and settles left-to-right), then the firmware version and build date fade in beneath. Replaces the static MeshCore-logo splash.
+
+## 8. Navigation retained
 
 Monster Mesh keeps Digitaino's Navigation page and waypoint functionality, including:
 
@@ -87,7 +105,7 @@ Monster Mesh keeps Digitaino's Navigation page and waypoint functionality, inclu
 - ETA
 - GPS heading / movement data
 
-## 7. Existing Digitaino functionality retained
+## 9. Existing Digitaino functionality retained
 
 The custom build is intended to preserve the broader Digitaino feature set, including:
 
