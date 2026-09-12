@@ -57,7 +57,13 @@ jobs:
       - name: Build Wio Tracker L1 Pro UF2 (Monster Mesh on Solo)
         working-directory: firmware
         run: |
-          pio run -e WioTrackerL1_companion_solo_dual
+          set -o pipefail
+          if ! pio run -e WioTrackerL1_companion_solo_dual 2>&1 | tee build.log; then
+            # Surface the actual compiler errors as GitHub annotations (visible in
+            # the run summary) so a failure doesn't require digging into the log.
+            grep -E "error:" build.log | head -30 | sed 's/^/::error::/' || true
+            exit 1
+          fi
           mkdir -p ../dist
           uf2=$(find .pio/build/WioTrackerL1_companion_solo_dual -name '*.uf2' | head -1)
           test -n "$uf2"

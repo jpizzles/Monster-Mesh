@@ -2,16 +2,15 @@ from pathlib import Path
 
 # ===================================================================================
 # Monster Mesh customizations, applied over MeshCore-Solo (the new base) in CI.
-# Mirrors the guarded string-patch approach of the Digitaino patch: every change
-# is anchored on an exact upstream string and fails the build loudly if that anchor
-# ever drifts, so a silent no-op can never ship.
+# Guarded string-patches: every change is anchored on an exact upstream string and
+# fails the build loudly if that anchor drifts, so a silent no-op can never ship.
 #
 # Roadmap (built incrementally, each verified in CI + on device):
 #   [x] Silent by default (no beeping)
-#   [ ] SOS-style status bar (username / horizontal battery / GPS-only-when-on)
+#   [x] SOS-style status bar (username / horizontal battery / GPS-only-when-on / dots)
+#   [x] Monster Snake (Tools > System)
 #   [ ] SOS font
 #   [ ] Digitaino navigation features, ported 1:1
-#   [ ] Monster Snake, Version screen, boot flip animation
 # ===================================================================================
 
 
@@ -27,7 +26,6 @@ def require(hay, needle, what):
 # defaults block), and the on-device Buzzer toggle still works normally.
 p = Path('examples/companion_radio/MyMesh.cpp')
 s = p.read_text()
-
 anchor = '  _prefs.buzzer_volume = 4;      // max volume by default\n'
 require(s, anchor, 'buzzer defaults block')
 s = s.replace(
@@ -35,19 +33,16 @@ s = s.replace(
     anchor + '  _prefs.buzzer_quiet = 1;       // Monster Mesh: silent by default (no beeping)\n',
     1,
 )
-
 p.write_text(s)
 
 
 # ---- (2) SOS-style status bar ----------------------------------------------------
-# Match the SOS top bar: username left, horizontal battery right (already so in Solo),
-# "GPS" text centred on the title row only when GPS is on, and a row of plain dots for
-# the page indicator (current page = a larger filled square) instead of Solo's per-page
-# icons + underline.
+# username left, horizontal battery right (already so in Solo), "GPS" text centred on
+# the title row only when GPS is on, and a row of plain dots for the page indicator
+# (current page = a larger filled square) instead of Solo's per-page icons + underline.
 p = Path('examples/companion_radio/ui-new/UITask.cpp')
 s = p.read_text()
 
-# (2a) "GPS" text on the title row when GPS is on.
 gps_anchor = (
     '          display.drawTextEllipsized(0, 0, rightEdge - 2, filtered_name);\n'
     '        }\n'
@@ -68,7 +63,6 @@ s = s.replace(
     1,
 )
 
-# (2b) SOS dots for the page indicator (current page = larger filled square).
 dots_anchor = (
     '        const MiniIcon* ic = pageIcon(order[i]);\n'
     '        if (ic) miniIconDrawCentered(display, x, dots_y, *ic);\n'
@@ -83,20 +77,19 @@ s = s.replace(
     '        display.fillRect(x - dot / 2, dots_y - dot / 2, dot, dot);\n',
     1,
 )
-
 p.write_text(s)
 
 
-# ---- (3) Monster Snake ------------------------------------------------------------
-# Self-contained Snake game under Tools > System ("Monster Snake"). Writes a new
-# UIScreen header and wires it in with minimal guarded patches (include, instance,
-# goto, Tools enum/dispatch/entry). Draws only through the DisplayDriver API used
-# elsewhere; modelled on the existing tool screens.
-
+# ---- (3) Monster Snake -----------------------------------------------------------
+# Self-contained Snake game under Tools > System ("Monster Snake"). Every identifier
+# is prefixed (SnakeState / SNK_* / SNK-consts) to avoid colliding with any macro in
+# the Arduino / nRF / RadioLib headers, and it uses a self-contained xorshift RNG
+# instead of Arduino random(). Draws only through the DisplayDriver API.
 Path('examples/companion_radio/ui-new/MonsterSnakeScreen.h').write_text(r'''#pragma once
 // Monster Mesh -- "Monster Snake": a self-contained Snake game under Tools.
 // Custom screen, included by UITask.cpp after UITask is fully defined (like the
-// other tool screens). Draws only through the DisplayDriver API.
+// other tool screens). Draws only through the DisplayDriver API. All identifiers
+// are prefixed to avoid clashing with framework macros.
 
 #include "UIScreen.h"
 
@@ -105,26 +98,32 @@ class UITask;
 class MonsterSnakeScreen : public UIScreen {
   UITask* _task;
 
-  static const int CELL = 4;
-  static const int GRID_X = 0;
-  static const int GRID_Y = 10;   // below a one-line score header
-  static const int COLS = 32;     // 128 / CELL
-  static const int ROWS = 13;     // (64 - GRID_Y) / CELL
-  static const int MAXLEN = 96;
+  static const int SNK_CELL = 4;
+  static const int SNK_GX = 0;
+  static const int SNK_GY = 10;    // below a one-line score header
+  static const int SNK_COLS = 32;  // 128 / SNK_CELL
+  static const int SNK_ROWS = 13;  // (64 - SNK_GY) / SNK_CELL
+  static const int SNK_MAXLEN = 96;
 
-  enum State : uint8_t { READY, RUNNING, OVER };
-  State    _state = READY;
-  uint8_t  _sx[MAXLEN], _sy[MAXLEN];
-  int      _len = 3;
-  uint8_t  _dir = 1, _next_dir = 1;   // 0=up 1=right 2=down 3=left
-  uint8_t  _fx = 0, _fy = 0;
-  int      _score = 0;
-  uint32_t _last_step = 0;
-  uint16_t _tick_ms = 180;
+  enum SnakeState : uint8_t { SNK_READY, SNK_RUNNING, SNK_OVER };
+  SnakeState _state = SNK_READY;
+  uint8_t    _sx[SNK_MAXLEN], _sy[SNK_MAXLEN];
+  int        _len = 3;
+  uint8_t    _dir = 1, _next_dir = 1;   // 0=up 1=right 2=down 3=left
+  uint8_t    _fx = 0, _fy = 0;
+  int        _score = 0;
+  uint32_t   _last_step = 0;
+  uint16_t   _tick_ms = 180;
+  uint32_t   _rng = 0x2545F491u;        // self-contained PRNG (no Arduino random())
+
+  uint8_t rnd(uint8_t n) {
+    _rng ^= _rng << 13; _rng ^= _rng >> 17; _rng ^= _rng << 5;
+    return n ? (uint8_t)(_rng % n) : 0;
+  }
 
   void placeFood() {
     for (int t = 0; t < 60; t++) {
-      uint8_t x = (uint8_t)random(COLS), y = (uint8_t)random(ROWS);
+      uint8_t x = rnd(SNK_COLS), y = rnd(SNK_ROWS);
       bool hit = false;
       for (int i = 0; i < _len; i++) if (_sx[i] == x && _sy[i] == y) { hit = true; break; }
       if (!hit) { _fx = x; _fy = y; return; }
@@ -132,30 +131,30 @@ class MonsterSnakeScreen : public UIScreen {
     _fx = 0; _fy = 0;
   }
 
-  void reset() {
-    randomSeed(millis());
+  void resetGame() {
+    _rng = (uint32_t)millis() | 1u;
     _len = 3;
     _dir = _next_dir = 1;
-    _sx[0] = COLS / 2;   _sy[0] = ROWS / 2;
-    _sx[1] = _sx[0] - 1; _sy[1] = _sy[0];
-    _sx[2] = _sx[0] - 2; _sy[2] = _sy[0];
+    _sx[0] = SNK_COLS / 2;   _sy[0] = SNK_ROWS / 2;
+    _sx[1] = _sx[0] - 1;     _sy[1] = _sy[0];
+    _sx[2] = _sx[0] - 2;     _sy[2] = _sy[0];
     _score = 0;
     _tick_ms = 180;
     placeFood();
     _last_step = millis();
-    _state = RUNNING;
+    _state = SNK_RUNNING;
   }
 
   void step() {
     _dir = _next_dir;
     int hx = _sx[0], hy = _sy[0];
     if (_dir == 0) hy--; else if (_dir == 1) hx++; else if (_dir == 2) hy++; else hx--;
-    if (hx < 0 || hx >= COLS || hy < 0 || hy >= ROWS) { _state = OVER; return; }
+    if (hx < 0 || hx >= SNK_COLS || hy < 0 || hy >= SNK_ROWS) { _state = SNK_OVER; return; }
     bool grow = ((uint8_t)hx == _fx && (uint8_t)hy == _fy);
     int body = grow ? _len : _len - 1;
     for (int i = 0; i < body; i++)
-      if (_sx[i] == (uint8_t)hx && _sy[i] == (uint8_t)hy) { _state = OVER; return; }
-    if (grow && _len < MAXLEN) _len++;
+      if (_sx[i] == (uint8_t)hx && _sy[i] == (uint8_t)hy) { _state = SNK_OVER; return; }
+    if (grow && _len < SNK_MAXLEN) _len++;
     for (int i = _len - 1; i > 0; i--) { _sx[i] = _sx[i-1]; _sy[i] = _sy[i-1]; }
     _sx[0] = (uint8_t)hx; _sy[0] = (uint8_t)hy;
     if (grow) {
@@ -168,10 +167,10 @@ class MonsterSnakeScreen : public UIScreen {
 public:
   MonsterSnakeScreen(UITask* task) : _task(task) { }
 
-  void onShow() override { _state = READY; }
+  void onShow() override { _state = SNK_READY; }
 
   int render(DisplayDriver& display) override {
-    if (_state == RUNNING && (uint32_t)(millis() - _last_step) >= _tick_ms) {
+    if (_state == SNK_RUNNING && (uint32_t)(millis() - _last_step) >= _tick_ms) {
       _last_step = millis();
       step();
     }
@@ -184,32 +183,32 @@ public:
     display.print(hdr);
 
     // playfield border (fillRect only -- guaranteed available)
-    const int bw = COLS * CELL, bh = ROWS * CELL, by = GRID_Y - 1;
+    const int bw = SNK_COLS * SNK_CELL, bh = SNK_ROWS * SNK_CELL, by = SNK_GY - 1;
     display.setColor(DisplayDriver::LIGHT);
-    display.fillRect(GRID_X, by, bw, 1);
-    display.fillRect(GRID_X, by + bh, bw, 1);
-    display.fillRect(GRID_X, by, 1, bh);
-    display.fillRect(GRID_X + bw - 1, by, 1, bh);
+    display.fillRect(SNK_GX, by, bw, 1);
+    display.fillRect(SNK_GX, by + bh, bw, 1);
+    display.fillRect(SNK_GX, by, 1, bh);
+    display.fillRect(SNK_GX + bw - 1, by, 1, bh);
 
-    if (_state == READY) {
+    if (_state == SNK_READY) {
       display.setColor(DisplayDriver::GREEN);
-      display.drawTextCentered(display.width() / 2, GRID_Y + 14, "Monster Snake");
+      display.drawTextCentered(display.width() / 2, SNK_GY + 14, "Monster Snake");
       display.setColor(DisplayDriver::LIGHT);
-      display.drawTextCentered(display.width() / 2, GRID_Y + 30, "ENTER to play");
+      display.drawTextCentered(display.width() / 2, SNK_GY + 30, "ENTER to play");
       return 200;
     }
 
     display.setColor(DisplayDriver::YELLOW);
-    display.fillRect(GRID_X + _fx * CELL, GRID_Y + _fy * CELL, CELL - 1, CELL - 1);
+    display.fillRect(SNK_GX + _fx * SNK_CELL, SNK_GY + _fy * SNK_CELL, SNK_CELL - 1, SNK_CELL - 1);
 
     display.setColor(DisplayDriver::GREEN);
     for (int i = 0; i < _len; i++)
-      display.fillRect(GRID_X + _sx[i] * CELL, GRID_Y + _sy[i] * CELL, CELL - 1, CELL - 1);
+      display.fillRect(SNK_GX + _sx[i] * SNK_CELL, SNK_GY + _sy[i] * SNK_CELL, SNK_CELL - 1, SNK_CELL - 1);
 
-    if (_state == OVER) {
+    if (_state == SNK_OVER) {
       display.setColor(DisplayDriver::LIGHT);
-      display.drawTextCentered(display.width() / 2, GRID_Y + 14, "Game Over");
-      display.drawTextCentered(display.width() / 2, GRID_Y + 30, "ENTER = retry");
+      display.drawTextCentered(display.width() / 2, SNK_GY + 14, "Game Over");
+      display.drawTextCentered(display.width() / 2, SNK_GY + 30, "ENTER = retry");
       return 300;
     }
     return 60;
@@ -217,8 +216,8 @@ public:
 
   bool handleInput(char c) override {
     if (c == KEY_CANCEL) { _task->gotoToolsScreen(); return true; }
-    if (c == KEY_ENTER) { if (_state != RUNNING) reset(); return true; }
-    if (_state == RUNNING) {
+    if (c == KEY_ENTER) { if (_state != SNK_RUNNING) resetGame(); return true; }
+    if (_state == SNK_RUNNING) {
       if      (c == KEY_UP    && _dir != 2) _next_dir = 0;
       else if (c == KEY_RIGHT && _dir != 3) _next_dir = 1;
       else if (c == KEY_DOWN  && _dir != 0) _next_dir = 2;
