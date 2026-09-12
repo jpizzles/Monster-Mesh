@@ -91,7 +91,7 @@ Path('examples/companion_radio/ui-new/MonsterSnakeScreen.h').write_text(r'''#pra
 // other tool screens). Draws only through the DisplayDriver API. All identifiers
 // are prefixed to avoid clashing with framework macros.
 
-#include "UIScreen.h"
+#include <helpers/ui/UIScreen.h>
 
 class UITask;
 
