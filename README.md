@@ -4,47 +4,64 @@ Custom Wio Tracker L1 Pro firmware based on DigitainoMeshCore and MeshCore, focu
 
 ## Download firmware
 
-### [Download the latest Monster Mesh UF2](https://github.com/jpizzles/Monster-Mesh/releases/latest/download/Monster-Mesh-WioTracker-L1-Pro.uf2)
+### [Open the latest Monster Mesh build](https://github.com/jpizzles/Monster-Mesh/actions/workflows/build.yml)
 
-Latest releases are also available from the repository's [Releases page](https://github.com/jpizzles/Monster-Mesh/releases).
+Open the newest successful build and download the `Monster-Mesh-WioTracker-L1-Pro` artifact. It contains:
+
+- `Monster-Mesh-WioTracker-L1-Pro.uf2` — flashable firmware
+- `Monster-Mesh-WioTracker-L1-Pro-SHA256.txt` — checksum
+
+Build artifacts are retained for 90 days, and every push to `main` automatically produces a fresh downloadable UF2.
 
 Target device: Seeed Studio Wio Tracker L1 Pro (nRF52840 + SX1262).
 
-## Monster Mesh additions
+## What's new in Monster Mesh
 
-- On-device Local vs Flood advert control
-  - ENTER sends a local / zero-hop advert
-  - DOWN sends a true mesh flood advert through repeaters
-- Favorite / Unfavorite directly from the Contacts action menu
-  - favorite contacts are marked with `*`
-  - favorites sort to the top
-  - favorite state persists
-- Dedicated Rooms contact filter
-  - Contacts filters are now `All | Contacts | Repeaters | Rooms`
-  - advertised MeshCore room servers remain marked `[Rm]`
-- Standalone radio controls directly on the Wio
-  - Frequency
-  - Spreading Factor (SF)
-  - Bandwidth (BW)
-  - Coding Rate (CR)
-  - TX power remains available from the existing radio controls
-- Fast per-digit frequency editor
-  - ENTER on Frequency starts editing
-  - LEFT / RIGHT moves between digits
-  - UP / DOWN changes only the selected digit
-  - ENTER saves and retunes the SX1262
-  - CANCEL discards changes
-  - frequency editor is constrained to the SX1262 operating range used by this build
-- Digitaino navigation features retained
-  - full Navigation screen
-  - waypoint / contact navigation
-  - target bearing arrow
-  - distance and ETA information
-- Existing Digitaino standalone messaging, GPS, signal, repeater, telemetry and companion-app functionality retained
+### Local or Flood advert from the device
 
-## Frequency editor example
+The Advert screen no longer forces a local-only advertisement.
 
-A frequency such as `915.000 MHz` is edited one digit at a time:
+- ENTER sends a Local / zero-hop advert
+- DOWN sends a true Flood advert through the mesh/repeaters
+
+### Favorite / Unfavorite contacts
+
+The Contacts action menu now includes Favorite / Unfavorite.
+
+- favorites are marked with `*`
+- favorites automatically sort to the top
+- favorite state is saved persistently
+
+### Dedicated Rooms filter
+
+Contacts now cycle through:
+
+`All | Contacts | Repeaters | Rooms`
+
+Advertised MeshCore room servers remain marked `[Rm]`, but you no longer have to hunt through the All list to find them.
+
+### Standalone radio controls
+
+Radio parameters can now be changed directly on the Wio instead of requiring the companion app:
+
+- Frequency
+- Spreading Factor (SF)
+- Bandwidth (BW)
+- Coding Rate (CR)
+- TX power remains available through the existing radio controls
+
+SF, BW and CR can be adjusted from the device UI and are applied to the radio and saved.
+
+### Fast per-digit frequency editor
+
+Press ENTER on Frequency to enter digit-edit mode.
+
+- LEFT / RIGHT moves between individual digits
+- UP / DOWN changes only the selected digit
+- ENTER saves and retunes the SX1262
+- CANCEL discards the edit
+
+Example:
 
 ```text
 [9]15.000
@@ -55,27 +72,43 @@ A frequency such as `915.000 MHz` is edited one digit at a time:
 915.00[0]
 ```
 
-This is substantially faster than stepping frequency in small fixed increments.
+This is much faster than stepping frequency in tiny fixed increments.
+
+### Navigation retained
+
+Monster Mesh keeps the Digitaino navigation functionality, including:
+
+- full Navigation screen
+- waypoint / contact navigation
+- target bearing arrow
+- distance and ETA information
+- GPS-based motion behavior
+
+### Existing Digitaino features retained
+
+Monster Mesh is not a stripped-down rewrite. Existing standalone messaging, GPS, signals, repeater tools, telemetry, packets, Nearby discovery, quick messages and companion-app functionality remain part of the build.
 
 ## Flashing
 
-1. Download `Monster-Mesh-WioTracker-L1-Pro.uf2` from the Latest Release link above.
-2. Double-press RESET on the Wio Tracker L1 Pro.
-3. The device should mount as the `TRACKER L1` bootloader drive.
-4. Drag the UF2 onto that drive.
-5. Wait for the Wio to reboot.
+1. Open the [Monster Mesh build page](https://github.com/jpizzles/Monster-Mesh/actions/workflows/build.yml).
+2. Open the newest successful build.
+3. Download the `Monster-Mesh-WioTracker-L1-Pro` artifact.
+4. Extract `Monster-Mesh-WioTracker-L1-Pro.uf2`.
+5. Double-press RESET on the Wio Tracker L1 Pro.
+6. The device should mount as the `TRACKER L1` bootloader drive.
+7. Drag the UF2 onto that drive and wait for the Wio to reboot.
 
 Changing Frequency, SF, BW or CR can immediately take the device off your current mesh. Nodes that need to communicate must use compatible LoRa radio parameters.
 
-## Building
+## Reproducible build
 
-Monster Mesh uses PlatformIO. For the Wio Tracker L1 Pro BLE companion build:
+The repository pins the DigitainoMeshCore base revision used for Monster Mesh and applies the Monster Mesh customization patch during CI, so the downloadable UF2 is reproducible from the files in this repository.
+
+The Wio Tracker L1 Pro build command is:
 
 ```bash
 pio run -e WioTrackerL1_companion_radio_ble -t create_uf2
 ```
-
-The GitHub Actions workflow also builds the UF2 automatically and publishes the current main build to GitHub Releases.
 
 ## Upstream / credits
 
@@ -84,10 +117,10 @@ Monster Mesh is derived from:
 - DigitainoMeshCore by pesqair: https://github.com/pesqair/DigitainoMeshCore
 - MeshCore and its contributors: https://github.com/meshcore-dev/MeshCore
 
-The original project README states that DigitainoMeshCore inherits the MIT license from upstream MeshCore. Monster Mesh preserves upstream attribution and is intended to remain compatible with the MeshCore ecosystem.
+The DigitainoMeshCore project states that it inherits the MIT license from upstream MeshCore. Monster Mesh preserves upstream attribution and is intended to remain compatible with the MeshCore ecosystem.
 
 Monster Mesh customizations and branding: jPizZleS.
 
 ## Status
 
-This project is an enthusiast firmware fork. Use radio settings that are legal for your region and appropriate for the mesh network you intend to join.
+This is enthusiast firmware. Use radio settings that are legal for your region and appropriate for the mesh network you intend to join.
