@@ -48,6 +48,8 @@ jobs:
         working-directory: firmware
         run: |
           grep -q 'Monster Mesh: silent by default' examples/companion_radio/MyMesh.cpp
+          grep -q 'GPS" centred on the title row' examples/companion_radio/ui-new/UITask.cpp
+          grep -q 'plain dots; current page' examples/companion_radio/ui-new/UITask.cpp
 
       - name: Build Wio Tracker L1 Pro UF2 (Monster Mesh on Solo)
         working-directory: firmware

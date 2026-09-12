@@ -37,4 +37,52 @@ s = s.replace(
 )
 
 p.write_text(s)
-print('Monster Mesh Solo patch applied: silent by default.')
+
+
+# ---- (2) SOS-style status bar ----------------------------------------------------
+# Match the SOS top bar: username left, horizontal battery right (already so in Solo),
+# "GPS" text centred on the title row only when GPS is on, and a row of plain dots for
+# the page indicator (current page = a larger filled square) instead of Solo's per-page
+# icons + underline.
+p = Path('examples/companion_radio/ui-new/UITask.cpp')
+s = p.read_text()
+
+# (2a) "GPS" text on the title row when GPS is on.
+gps_anchor = (
+    '          display.drawTextEllipsized(0, 0, rightEdge - 2, filtered_name);\n'
+    '        }\n'
+    '      }\n'
+    '    }\n'
+)
+require(s, gps_anchor, 'SOS status bar: title-row anchor')
+s = s.replace(
+    gps_anchor,
+    '          display.drawTextEllipsized(0, 0, rightEdge - 2, filtered_name);\n'
+    '        }\n'
+    '      }\n'
+    '      // Monster Mesh (SOS look): "GPS" centred on the title row, only when GPS is on.\n'
+    '      if (_page != LOCK && _task->getGPSState()) {\n'
+    '        display.drawTextCentered(display.width() / 2, 0, "GPS");\n'
+    '      }\n'
+    '    }\n',
+    1,
+)
+
+# (2b) SOS dots for the page indicator (current page = larger filled square).
+dots_anchor = (
+    '        const MiniIcon* ic = pageIcon(order[i]);\n'
+    '        if (ic) miniIconDrawCentered(display, x, dots_y, *ic);\n'
+    '        if (i == curr_vis)                              // underline the current page\n'
+    '          display.fillRect(x - icon_w / 2, dots_y + pg_half + 1, icon_w, s);\n'
+)
+require(s, dots_anchor, 'SOS status bar: page-indicator anchor')
+s = s.replace(
+    dots_anchor,
+    '        // Monster Mesh (SOS look): plain dots; current page = larger filled square.\n'
+    '        int dot = (i == curr_vis) ? 3 * s : s;\n'
+    '        display.fillRect(x - dot / 2, dots_y - dot / 2, dot, dot);\n',
+    1,
+)
+
+p.write_text(s)
+print('Monster Mesh Solo patch applied: silent + SOS status bar.')
