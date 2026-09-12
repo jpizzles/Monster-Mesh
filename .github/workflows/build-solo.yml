@@ -1,0 +1,59 @@
+name: Build Monster Mesh (Solo base - validation)
+
+# Foundation-validation build for the Solo-based Monster Mesh track.
+# Builds STOCK MeshCore-Solo for the Wio Tracker L1 Pro (board target
+# `wio-tracker-l1`, identical board JSON to the Digitaino build we already
+# run on the device). No Monster Mesh customisations yet - the point of this
+# build is to confirm Solo boots and the screen/joystick/GPS work on real
+# hardware before we port Digitaino's navigation and recreate the SOS look.
+#
+# Runs only on the `solo-base` branch so `main` (the working Digitaino build)
+# is never touched.
+
+on:
+  push:
+    branches: [solo-base]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Monster Mesh
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install PlatformIO
+        run: python -m pip install --upgrade platformio
+
+      - name: Fetch MeshCore-Solo base
+        run: |
+          git clone https://github.com/MarekZegare4/MeshCore-Solo.git firmware
+          cd firmware
+          git checkout d72fed66c123ad2b6cfdf08f5b0acc38932a6a41
+
+      - name: Build Wio Tracker L1 Pro UF2 (stock Solo)
+        working-directory: firmware
+        run: |
+          pio run -e WioTrackerL1_companion_solo_dual
+          mkdir -p ../dist
+          uf2=$(find .pio/build/WioTrackerL1_companion_solo_dual -name '*.uf2' | head -1)
+          test -n "$uf2"
+          cp "$uf2" ../dist/Monster-Mesh-Solo-WioTracker-L1-Pro.uf2
+          sha256sum ../dist/Monster-Mesh-Solo-WioTracker-L1-Pro.uf2 > ../dist/Monster-Mesh-Solo-WioTracker-L1-Pro-SHA256.txt
+
+      - name: Upload downloadable firmware
+        uses: actions/upload-artifact@v4
+        with:
+          name: Monster-Mesh-Solo-WioTracker-L1-Pro
+          path: dist/
+          if-no-files-found: error
+          retention-days: 90
