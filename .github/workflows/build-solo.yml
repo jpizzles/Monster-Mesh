@@ -1,14 +1,14 @@
 name: Build Monster Mesh (Solo base - validation)
 
-# Foundation-validation build for the Solo-based Monster Mesh track.
-# Builds STOCK MeshCore-Solo for the Wio Tracker L1 Pro (board target
-# `wio-tracker-l1`, identical board JSON to the Digitaino build we already
-# run on the device). No Monster Mesh customisations yet - the point of this
-# build is to confirm Solo boots and the screen/joystick/GPS work on real
-# hardware before we port Digitaino's navigation and recreate the SOS look.
+# Solo-based Monster Mesh track. Builds MeshCore-Solo for the Wio Tracker L1 Pro
+# (board target `wio-tracker-l1`, identical board JSON to the Digitaino build we
+# already run on the device) and applies the Monster Mesh Solo patch
+# (.monster/monster_patch_solo.py) on top. Foundation (stock Solo) was confirmed
+# booting on real hardware 2026-09-12; increments now build up SOS look +
+# Digitaino nav.
 #
-# Runs only on the `solo-base` branch so `main` (the working Digitaino build)
-# is never touched.
+# Runs only on the `solo-base` branch so `main` (the working Digitaino build,
+# also tagged monster-mash-v0.2.0-digitaino) is never touched.
 
 on:
   push:
@@ -40,7 +40,16 @@ jobs:
           cd firmware
           git checkout d72fed66c123ad2b6cfdf08f5b0acc38932a6a41
 
-      - name: Build Wio Tracker L1 Pro UF2 (stock Solo)
+      - name: Apply Monster Mesh customizations
+        working-directory: firmware
+        run: python "$GITHUB_WORKSPACE/.monster/monster_patch_solo.py"
+
+      - name: Verify Monster Mesh customizations
+        working-directory: firmware
+        run: |
+          grep -q 'Monster Mesh: silent by default' examples/companion_radio/MyMesh.cpp
+
+      - name: Build Wio Tracker L1 Pro UF2 (Monster Mesh on Solo)
         working-directory: firmware
         run: |
           pio run -e WioTrackerL1_companion_solo_dual
