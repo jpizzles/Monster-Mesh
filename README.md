@@ -15,6 +15,18 @@ Build artifacts are retained for 90 days, and every push to `main` automatically
 
 Target device: Seeed Studio Wio Tracker L1 Pro (nRF52840 + SX1262).
 
+## Documentation
+
+If you are picking this project up on another computer, start here:
+
+- [HANDOFF.md](HANDOFF.md) — current state and exact continuation notes
+- [BUILD.md](BUILD.md) — clean-machine build instructions
+- [FEATURES.md](FEATURES.md) — complete Monster Mesh feature list
+- [DEVELOPMENT.md](DEVELOPMENT.md) — source layout and development workflow
+- [CHANGELOG.md](CHANGELOG.md) — version/change history
+- [UPSTREAM.md](UPSTREAM.md) — Digitaino/MeshCore relationship and update procedure
+- [CONTRIBUTING.md](CONTRIBUTING.md) — contribution/testing expectations
+
 ## What's new in Monster Mesh
 
 ### Local or Flood advert from the device
